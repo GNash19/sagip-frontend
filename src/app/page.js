@@ -1,66 +1,66 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+"use client";
+
+import { useState, useMemo } from "react";
+import Header from "@/components/Header";
+import TriageView from "@/components/TriageView";
+import QueueView from "@/components/QueueView";
+import AboutView from "@/components/AboutView";
+import LandingPage from "@/components/LandingPage";
+import { DEPARTMENTS } from "@/constants/departments";
 
 export default function Home() {
+  const [currentView, setCurrentView] = useState("home");
+  const [queues, setQueues] = useState(() =>
+    Object.fromEntries(DEPARTMENTS.map((d) => [d, []]))
+  );
+
+  const totalPatients = useMemo(
+    () => Object.values(queues).reduce((sum, arr) => sum + arr.length, 0),
+    [queues]
+  );
+
+  function handlePatientQueued(patient) {
+    setQueues((prev) => {
+      const dept = patient.department;
+      const updated = [...prev[dept], patient].sort(
+        (a, b) => b.priority - a.priority
+      );
+      return { ...prev, [dept]: updated };
+    });
+  }
+
+  function handleServe(dept) {
+    setQueues((prev) => {
+      const updated = prev[dept].slice(1);
+      return { ...prev, [dept]: updated };
+    });
+  }
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.js file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "var(--bg-primary)",
+        color: "var(--text-primary)",
+        fontFamily: "var(--font-sans)",
+      }}
+    >
+      <Header
+        currentView={currentView}
+        setCurrentView={setCurrentView}
+        queueCount={totalPatients}
+      />
+
+      {currentView === "home" && (
+        <LandingPage onNavigate={setCurrentView} />
+      )}
+      {currentView === "triage" && (
+        <TriageView onPatientQueued={handlePatientQueued} queues={queues} />
+      )}
+      {currentView === "queue" && (
+        <QueueView queues={queues} onServe={handleServe} />
+      )}
+      {currentView === "about" && <AboutView />}
     </div>
   );
 }
