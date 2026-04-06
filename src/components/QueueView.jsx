@@ -1,5 +1,5 @@
-{/* QueueView.jsx */}
 "use client";
+// QueueView.jsx
 
 import { useState } from "react";
 import { DEPARTMENTS, DEPT_COLORS } from "@/constants/departments";
@@ -189,7 +189,16 @@ export default function QueueView({ queues, onServe }) {
                           </span>
                         )}
                         {patient.vulnerabilities.map((v) => (
-                          <span key={v} style={s.vulnBadge}>
+                          <span
+                            key={v}
+                            style={
+                              v === "Pediatric"
+                                ? s.vulnBadgePediatric
+                                : v === "Pregnant"
+                                  ? s.vulnBadgePregnant
+                                  : s.vulnBadge
+                            }
+                          >
                             {v}
                           </span>
                         ))}
@@ -204,7 +213,8 @@ export default function QueueView({ queues, onServe }) {
                             <PenLine size={11} />
                           )}
                         </span>{" "}
-                        {patient.language} &bull; Wait: {waitMin}m
+                        {patient.language} &bull;{" "}
+                        {patient.gender} &bull; Wait: {waitMin}m
                         &bull; Conf:{" "}
                         {Math.round(patient.confidence * 100)}%
                       </div>
@@ -387,6 +397,20 @@ const s = {
     fontSize: 9,
     color: "#D97706",
     background: "#FEF3C7",
+    padding: "2px 6px",
+    borderRadius: 4,
+  },
+  vulnBadgePregnant: {
+    fontSize: 9,
+    color: "#9D174D",
+    background: "#FCE7F3",
+    padding: "2px 6px",
+    borderRadius: 4,
+  },
+  vulnBadgePediatric: {
+    fontSize: 9,
+    color: "#1E40AF",
+    background: "#DBEAFE",
     padding: "2px 6px",
     borderRadius: 4,
   },

@@ -44,7 +44,7 @@ sagip-triage/src/
 
 ### Key Utilities
 
-**`classifier.js`** — `classifySymptoms(text, language)` async function. Calls Anthropic API (`claude-sonnet-4-20250514`) to classify symptoms into 1 of 8 departments. Returns `{ department, confidence, probabilities, reasoning, detected_language }` or `null` on error. No API key header — auth handled by deployment environment.
+**`classifier.js`** — `classifySymptoms(text, language, patientContext)` async function. Calls classification API to classify symptoms into 1 of 8 departments. `patientContext` is `{ age, gender, vulnerabilities }` — used to build enriched prompt text with gender-aware routing (OB-GYN gated to Female patients only). Returns `{ department, confidence, probabilities, reasoning, detected_language }` or `null` on error.
 
 **`priorityQueue.js`** — `computePriority(confidence, age, vulnerabilities, waitMinutes)`. Weighted scoring: confidence 0.25, age 0.30, vulnerability 0.30, waitTime 0.15. Implements SPMC age rules and Philippine law (RA 7277, RA 9442, RA 10754) vulnerability scoring. Starvation prevention via wait-time aging.
 
@@ -84,7 +84,7 @@ Lookup per department. Placeholder values (to be calibrated with SPMC physicians
 Only two groups qualify:
   Senior Citizen (age >= 60): 1.0   — RA 10754 + SPMC older-gets-first rule
   Pregnant:                   0.95  — RA 10754 / SPMC policy
-  All others:                 0.0
+  All others (including Pediatric): 0.0 — Pediatric priority handled by A (age score)
 
 PWD is NOT a separate legal modifier. Every OPD patient is implicitly ill.
 Remove PWD from vulnerability scoring entirely.
@@ -116,8 +116,14 @@ Historical average wait times in minutes (placeholder until SPMC immersion):
 - Array is kept sorted by priority descending after every insertion or recomputation
 - No heapq — plain JS array sorted with .sort() after each mutation
 - Patient object shape expected by QueueView.jsx:
-    id, name, age, department, confidence, priority, timestamp (ms),
-    vulnerabilities (array of strings), language, inputMode, overridden (bool)
+    id, name, age, gender ("Female" | "Male"), department, confidence,
+    priority, timestamp (ms), vulnerabilities (array of strings),
+    language, inputMode, overridden (bool), symptom, reasoning
+- vulnerabilities array can contain: "Senior Citizen", "Pediatric", "Pregnant"
+  - Senior Citizen: auto-derived at construction if age >= 60
+  - Pediatric: auto-derived at construction if age < 12
+  - Pregnant: manually toggled by nurse, only available when gender === "Female"
+- OB-GYN is gender-gated: Female only, enforced at classifier prompt level
 
 ### Serve
 Removes index 0 of the selected department array (highest priority patient).
@@ -131,9 +137,9 @@ priority and T are recomputed live. QueueView reads (Date.now() - patient.timest
 for display. A periodic recomputation of priority scores (every 60s) re-sorts queues.
 
 ### PWD removal reminder
-getVulnerabilityScore in priorityQueue.js must not score PWD.
-The vulnerabilities array on a patient object may still contain the string "PWD"
-if the nurse entered it, but it contributes 0 to L. Remove the PWD branch entirely.
+PWD has been fully removed from the codebase. getVulnerabilityScore was replaced
+by getLegalScore which only recognizes Senior Citizen (age >= 60) and Pregnant.
+Vulnerabilities are now auto-derived from age/gender at patient construction time.
 
 ### Theme (CSS Variables)
 Defined in `globals.css` under `:root`. Key tokens:

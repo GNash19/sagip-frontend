@@ -40,7 +40,8 @@ function getAgeScore(age) {
   return age / 100;
 }
 
-// PWD excluded — all OPD patients are implicitly ill
+// Only Senior Citizen and Pregnant qualify — all OPD patients are implicitly ill
+// Pediatric does NOT contribute to L — age score handles it via getAgeScore
 function getLegalScore(age, vulnerabilities) {
   if (age >= 60) return 1.0; // Senior Citizen — RA 10754 + SPMC older-gets-first
   if (vulnerabilities && vulnerabilities.includes("Pregnant")) return 0.95;

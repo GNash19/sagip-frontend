@@ -33,8 +33,9 @@ export default function TriageView({ onPatientQueued, queues }) {
   const [patientInfo, setPatientInfo] = useState({
     name: "",
     age: "",
-    vulnerabilities: [],
+    gender: null,
   });
+  const [isPregnant, setIsPregnant] = useState(false);
   const [symptomText, setSymptomText] = useState("");
   const [classification, setClassification] = useState(null);
   const [isClassifying, setIsClassifying] = useState(false);
@@ -47,7 +48,8 @@ export default function TriageView({ onPatientQueued, queues }) {
     setStep(1);
     setInputMode("text");
     setLanguage("English");
-    setPatientInfo({ name: "", age: "", vulnerabilities: [] });
+    setPatientInfo({ name: "", age: "", gender: null });
+    setIsPregnant(false);
     setSymptomText("");
     setClassification(null);
     setIsClassifying(false);
@@ -56,24 +58,22 @@ export default function TriageView({ onPatientQueued, queues }) {
     speech.setTranscript("");
   }
 
-  function toggleVulnerability(v) {
-    setPatientInfo((prev) => {
-      const has = prev.vulnerabilities.includes(v);
-      return {
-        ...prev,
-        vulnerabilities: has
-          ? prev.vulnerabilities.filter((x) => x !== v)
-          : [...prev.vulnerabilities, v],
-      };
-    });
-  }
-
   async function handleClassify() {
     const text =
       inputMode === "speech" ? speech.transcript : symptomText;
+    const age = parseInt(patientInfo.age) || 30;
+    const classifyVulns = [];
+    if (age >= 60) classifyVulns.push("Senior Citizen");
+    if (age < 12) classifyVulns.push("Pediatric");
+    if (isPregnant && patientInfo.gender === "Female") classifyVulns.push("Pregnant");
+
     setIsClassifying(true);
     setStep(3);
-    const result = await classifySymptoms(text, language);
+    const result = await classifySymptoms(text, language, {
+      age,
+      gender: patientInfo.gender,
+      vulnerabilities: classifyVulns,
+    });
     setClassification(result);
     setIsClassifying(false);
     if (result) setStep(4);
@@ -83,13 +83,13 @@ export default function TriageView({ onPatientQueued, queues }) {
     const dept = nurseOverride || classification.department;
     const conf = nurseOverride ? 0.85 : classification.confidence;
     const age = parseInt(patientInfo.age) || 30;
-    const priority = computePriority(
-      conf,
-      age,
-      patientInfo.vulnerabilities,
-      0,
-      dept
-    );
+
+    const vulnerabilities = [];
+    if (age >= 60) vulnerabilities.push("Senior Citizen");
+    if (age < 12) vulnerabilities.push("Pediatric");
+    if (isPregnant && patientInfo.gender === "Female") vulnerabilities.push("Pregnant");
+
+    const priority = computePriority(conf, age, vulnerabilities, 0, dept);
 
     const patient = {
       id:
@@ -97,7 +97,8 @@ export default function TriageView({ onPatientQueued, queues }) {
         Math.random().toString(36).slice(2, 5),
       name: patientInfo.name || "Patient",
       age,
-      vulnerabilities: patientInfo.vulnerabilities,
+      gender: patientInfo.gender,
+      vulnerabilities,
       symptom: inputMode === "speech" ? speech.transcript : symptomText,
       language: classification.detected_language || language,
       inputMode,
@@ -164,29 +165,20 @@ export default function TriageView({ onPatientQueued, queues }) {
             </div>
           </div>
 
-          {/* Vulnerabilities */}
-          <div style={{ marginTop: 20 }}>
-            <label style={s.label}>
-              VULNERABILITY STATUS{" "}
-              <span style={{ fontWeight: 400, color: "#9CA3AF" }}>
-                (RA 7277 / RA 9442 / RA 10754)
-              </span>
-            </label>
-            <div
-              style={{
-                display: "flex",
-                gap: 8,
-                marginTop: 8,
-                flexWrap: "wrap",
-              }}
-            >
-              {["Senior Citizen", "PWD", "Pregnant"].map((v) => {
-                const sel = patientInfo.vulnerabilities.includes(v);
+          {/* Gender */}
+          <div style={{ marginTop: 16 }}>
+            <label style={s.label}>GENDER</label>
+            <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+              {["Female", "Male"].map((g) => {
+                const sel = patientInfo.gender === g;
                 return (
                   <button
-                    key={v}
-                    onClick={() => toggleVulnerability(v)}
-                    style={sel ? s.vulnSelected : s.vulnDefault}
+                    key={g}
+                    onClick={() => {
+                      setPatientInfo((p) => ({ ...p, gender: g }));
+                      if (g === "Male") setIsPregnant(false);
+                    }}
+                    style={sel ? s.genderSelected : s.genderDefault}
                   >
                     {sel && (
                       <Check
@@ -194,23 +186,79 @@ export default function TriageView({ onPatientQueued, queues }) {
                         style={{ verticalAlign: "middle", marginRight: 4 }}
                       />
                     )}
-                    {v}
+                    {g}
                   </button>
                 );
               })}
             </div>
           </div>
 
+          {/* Priority Flags (auto-detected) */}
+          <div style={{ marginTop: 20 }}>
+            <label style={s.label}>PRIORITY FLAGS (AUTO-DETECTED)</label>
+            <div
+              style={{
+                display: "flex",
+                gap: 8,
+                marginTop: 8,
+                flexWrap: "wrap",
+                alignItems: "center",
+              }}
+            >
+              {ageNum >= 60 && (
+                <span style={s.autoFlagSenior}>Senior Citizen</span>
+              )}
+              {ageNum > 0 && ageNum < 12 && (
+                <span style={s.autoFlagPediatric}>Pediatric</span>
+              )}
+              {patientInfo.gender === "Female" && (
+                <button
+                  onClick={() => setIsPregnant(!isPregnant)}
+                  style={isPregnant ? s.pregnantSelected : s.pregnantDefault}
+                >
+                  {isPregnant && (
+                    <Check
+                      size={14}
+                      style={{ verticalAlign: "middle", marginRight: 4 }}
+                    />
+                  )}
+                  Pregnant
+                </button>
+              )}
+              {!(ageNum >= 60) &&
+                !(ageNum > 0 && ageNum < 12) &&
+                patientInfo.gender !== "Female" && (
+                  <span
+                    style={{
+                      fontSize: 13,
+                      color: "#9CA3AF",
+                      fontStyle: "italic",
+                    }}
+                  >
+                    No priority flags detected
+                  </span>
+                )}
+            </div>
+          </div>
+
           {/* Continue */}
           <button
             onClick={() => setStep(2)}
-            disabled={!patientInfo.age}
+            disabled={
+              !patientInfo.name.trim() || !patientInfo.gender || !(ageNum > 0)
+            }
             style={{
               ...s.primaryBtn,
               marginTop: 28,
               width: "100%",
-              opacity: patientInfo.age ? 1 : 0.4,
-              pointerEvents: patientInfo.age ? "auto" : "none",
+              opacity:
+                patientInfo.name.trim() && patientInfo.gender && ageNum > 0
+                  ? 1
+                  : 0.4,
+              pointerEvents:
+                patientInfo.name.trim() && patientInfo.gender && ageNum > 0
+                  ? "auto"
+                  : "none",
             }}
           >
             Continue to Symptom Input
@@ -222,9 +270,14 @@ export default function TriageView({ onPatientQueued, queues }) {
 
   // ── STEP 2: Symptom Input ───────────────────────────────────
   if (step === 2) {
+    const step2Vulns = [];
+    const step2Age = parseInt(patientInfo.age);
+    if (step2Age >= 60) step2Vulns.push("Senior Citizen");
+    if (step2Age > 0 && step2Age < 12) step2Vulns.push("Pediatric");
+    if (isPregnant && patientInfo.gender === "Female") step2Vulns.push("Pregnant");
     const vulnText =
-      patientInfo.vulnerabilities.length > 0
-        ? " \u2022 " + patientInfo.vulnerabilities.join(", ")
+      step2Vulns.length > 0
+        ? " \u2022 " + step2Vulns.join(", ")
         : "";
 
     const textEmpty =
@@ -1035,8 +1088,8 @@ const s = {
     display: "inline-flex",
     alignItems: "center",
   },
-  vulnSelected: {
-    padding: "8px 16px",
+  genderSelected: {
+    padding: "8px 20px",
     borderRadius: 8,
     fontSize: 13,
     cursor: "pointer",
@@ -1044,11 +1097,56 @@ const s = {
     background: "#FFF5F5",
     color: "#C8102E",
     fontWeight: 600,
-    transition: "all 0.2s ease",
     display: "inline-flex",
     alignItems: "center",
   },
-  vulnDefault: {
+  genderDefault: {
+    padding: "8px 20px",
+    borderRadius: 8,
+    fontSize: 13,
+    cursor: "pointer",
+    border: "1px solid #E5E7EB",
+    background: "#F9FAFB",
+    color: "#4B5563",
+    fontWeight: 400,
+  },
+  autoFlagSenior: {
+    padding: "6px 14px",
+    borderRadius: 8,
+    fontSize: 13,
+    fontWeight: 500,
+    border: "1px solid #D97706",
+    background: "#FEF3C7",
+    color: "#92400E",
+    cursor: "default",
+    display: "inline-flex",
+    alignItems: "center",
+  },
+  autoFlagPediatric: {
+    padding: "6px 14px",
+    borderRadius: 8,
+    fontSize: 13,
+    fontWeight: 500,
+    border: "1px solid #3B82F6",
+    background: "#DBEAFE",
+    color: "#1E40AF",
+    cursor: "default",
+    display: "inline-flex",
+    alignItems: "center",
+  },
+  pregnantSelected: {
+    padding: "8px 16px",
+    borderRadius: 8,
+    fontSize: 13,
+    cursor: "pointer",
+    border: "2px solid #9D174D",
+    background: "#FCE7F3",
+    color: "#9D174D",
+    fontWeight: 600,
+    display: "inline-flex",
+    alignItems: "center",
+  },
+  pregnantDefault: {
     padding: "8px 16px",
     borderRadius: 8,
     fontSize: 13,
@@ -1057,7 +1155,6 @@ const s = {
     background: "#F9FAFB",
     color: "#4B5563",
     fontWeight: 400,
-    transition: "all 0.2s ease",
   },
   langSelected: {
     padding: "7px 16px",

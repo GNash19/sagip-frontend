@@ -12,8 +12,21 @@
 // It looks like: https://a1b2-34-56-78-90.ngrok-free.app
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
 
-export async function classifySymptoms(text, language) {
+export async function classifySymptoms(text, language, patientContext) {
   try {
+    // Build enriched text with patient context for gender-aware routing
+    let enrichedText = text;
+    if (patientContext) {
+      const flags = patientContext.vulnerabilities.length > 0
+        ? patientContext.vulnerabilities.join(", ")
+        : "None";
+      enrichedText =
+        `Patient context: ${patientContext.age}-year-old ${patientContext.gender} patient.\n` +
+        `Priority flags: ${flags}.\n` +
+        `OB-GYN department is only appropriate for Female patients. Do not route Male patients to OB-GYN under any circumstances.\n` +
+        `Symptom description: ${text}`;
+    }
+
     const response = await fetch(`${API_URL}/classify`, {
       method: "POST",
       headers: {
@@ -22,8 +35,9 @@ export async function classifySymptoms(text, language) {
         "ngrok-skip-browser-warning": "true",
       },
       body: JSON.stringify({
-        text: text,
+        text: enrichedText,
         language: language,
+        patient_context: patientContext || null,
       }),
     });
 

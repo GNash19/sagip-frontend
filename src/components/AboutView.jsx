@@ -28,7 +28,7 @@ const IMPL_NOTES = [
   },
   {
     heading: "Philippine Priority Laws",
-    text: "Complies with RA 7277 (Magna Carta for PWDs), RA 9442 (PWD privileges), RA 10754 (expanded Senior Citizen benefits). Enforces SPMC\u2019s institutional \u2018older-gets-first\u2019 rule for age-based priority elevation.",
+    text: "Complies with RA 10754 (expanded Senior Citizen benefits). Enforces SPMC\u2019s institutional \u2018older-gets-first\u2019 rule for age-based priority elevation.",
   },
 ];
 
