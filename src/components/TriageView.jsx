@@ -87,7 +87,8 @@ export default function TriageView({ onPatientQueued, queues }) {
       conf,
       age,
       patientInfo.vulnerabilities,
-      0
+      0,
+      dept
     );
 
     const patient = {

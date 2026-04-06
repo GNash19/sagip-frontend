@@ -1,3 +1,4 @@
+{/* QueueView.jsx */}
 "use client";
 
 import { useState } from "react";
@@ -87,8 +88,8 @@ export default function QueueView({ queues, onServe }) {
               {/* Preview line */}
               {count > 0 && (
                 <div style={s.previewLine}>
-                  Next: {patients[0].name} (P:{" "}
-                  {patients[0].priority.toFixed(1)})
+                  Next: {patients[0].name} —{" "}
+                  {Math.round((now - patients[0].timestamp) / 60000)}m wait
                 </div>
               )}
             </button>

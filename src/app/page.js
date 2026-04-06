@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Header from "@/components/Header";
 import TriageView from "@/components/TriageView";
 import QueueView from "@/components/QueueView";
 import AboutView from "@/components/AboutView";
 import LandingPage from "@/components/LandingPage";
 import { DEPARTMENTS } from "@/constants/departments";
+import { recomputeQueues } from "@/utils/priorityQueue";
 
 export default function Home() {
   const [currentView, setCurrentView] = useState("home");
@@ -18,6 +19,18 @@ export default function Home() {
     () => Object.values(queues).reduce((sum, arr) => sum + arr.length, 0),
     [queues]
   );
+
+  // Recompute priorities every 60s for wait-time aging
+  useEffect(() => {
+    const id = setInterval(() => {
+      setQueues((prev) => {
+        const updated = { ...prev };
+        recomputeQueues(updated);
+        return updated;
+      });
+    }, 60000);
+    return () => clearInterval(id);
+  }, []);
 
   function handlePatientQueued(patient) {
     setQueues((prev) => {
