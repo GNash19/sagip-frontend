@@ -5,10 +5,11 @@ import DeptIcon from "@/components/DeptIcon";
 
 const PIPELINE = [
   { label: "Symptom Input", sub: "Text / Speech", color: "#2563EB" },
+  { label: "Gender Prefix", sub: "[GENDER: M/F]", color: "#EC4899" },
   { label: "ASR / Normalization", sub: "Whisper + Text Prep", color: "#0891B2" },
   { label: "Tokenization", sub: "WordPiece / Subword", color: "#7C3AED" },
-  { label: "Transformer", sub: "XLM-R / mBERT", color: "#DC2626" },
-  { label: "Classification", sub: "Softmax Head", color: "#D97706" },
+  { label: "Transformer", sub: "XLM-R (Gender-Aware)", color: "#DC2626" },
+  { label: "Classification", sub: "Softmax + Gender Gate", color: "#D97706" },
   { label: "Queue Mgmt", sub: "Priority Scheduling", color: "#059669" },
   { label: "OPD Routing", sub: "Dept Assignment", color: "#DB2777" },
 ];
@@ -16,7 +17,11 @@ const PIPELINE = [
 const IMPL_NOTES = [
   {
     heading: "Classification Engine",
-    text: "Fine-tuned XLM-RoBERTa base model trained on multilingual symptom descriptions. Runs on Google Colab GPU via FastAPI. In production, deployed locally at SPMC for data privacy compliance (RA 10173).",
+    text: "Gender-aware retrained XLM-RoBERTa base model (Nashie1/sagip-xlm-roberta) hosted on Hugging Face Hub. Production backend runs on FastAPI via GCP Cloud Run (asia-southeast1). Model loaded from Hub on cold start for stateless serving.",
+  },
+  {
+    heading: "Gender-Aware Routing",
+    text: "A [GENDER: Male/Female] prefix is prepended to every symptom input before classification. Male patients are hard-blocked from OB-GYN at both the model level and the API level, with automatic fallback to Internal Medicine. POST /classify accepts { text, language, gender }.",
   },
   {
     heading: "Speech Pipeline",
@@ -30,16 +35,23 @@ const IMPL_NOTES = [
     heading: "Philippine Priority Laws",
     text: "Complies with RA 10754 (expanded Senior Citizen benefits). Enforces SPMC\u2019s institutional \u2018older-gets-first\u2019 rule for age-based priority elevation.",
   },
+  {
+    heading: "Production Deployment",
+    text: "Backend live on GCP Cloud Run (asia-southeast1) at sagip-backend-851223561042.asia-southeast1.run.app. FastAPI serves the /classify endpoint. Frontend deployed on Vercel. On-premises deployment at SPMC planned for RA 10173 data privacy compliance.",
+  },
 ];
 
 const MODEL_SPECS = [
   { label: "Base Model", value: "XLM-RoBERTa Base (278M parameters)" },
+  { label: "Model Hub", value: "Nashie1/sagip-xlm-roberta (Hugging Face Hub)" },
   { label: "Training Data", value: "~1,960 synthetic multilingual symptom descriptions" },
   { label: "Languages", value: "English, Filipino, Cebuano, Code-switching" },
   { label: "Departments", value: "8 SPMC OPD departments" },
   { label: "Fine-tuning", value: "5 epochs, learning rate 2e-5, batch size 16" },
-  { label: "Hardware", value: "Google Colab Pro (T4 GPU)" },
-  { label: "Max Sequence Length", value: "128 tokens" },
+  { label: "Backend", value: "FastAPI on GCP Cloud Run (asia-southeast1), production" },
+  { label: "Gender Routing", value: "[GENDER: M/F] prefix + API-level hard gate" },
+  { label: "API Contract", value: "POST /classify { text, language, gender }" },
+  { label: "Max Seq Length", value: "128 tokens" },
 ];
 
 export default function AboutView() {
@@ -92,7 +104,7 @@ export default function AboutView() {
                     flexShrink: 0,
                   }}
                 >
-                  →
+                  {"\u2192"}
                 </span>
               )}
             </div>
@@ -100,9 +112,9 @@ export default function AboutView() {
         </div>
       </div>
 
-      {/* Section 3 — Prototype Implementation Notes */}
+      {/* Section 3 — Implementation Notes */}
       <div style={{ ...s.card, marginTop: 16 }}>
-        <h3 style={s.cardTitle}>Prototype Implementation Notes</h3>
+        <h3 style={s.cardTitle}>Implementation Notes</h3>
         <div style={s.notesGrid}>
           {IMPL_NOTES.map((note) => (
             <div key={note.heading}>
@@ -119,6 +131,7 @@ export default function AboutView() {
         <div style={s.deptRow}>
           {DEPARTMENTS.map((dept) => {
             const color = DEPT_COLORS[dept];
+            const isObgyn = dept === "OB-GYN";
             return (
               <span
                 key={dept}
@@ -134,6 +147,21 @@ export default function AboutView() {
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                   <DeptIcon department={dept} size={16} color={color} />
                   {dept}
+                  {isObgyn && (
+                    <span
+                      style={{
+                        fontSize: 9,
+                        fontWeight: 700,
+                        color: "#9D174D",
+                        background: "#FCE7F3",
+                        padding: "1px 6px",
+                        borderRadius: 4,
+                        marginLeft: 2,
+                      }}
+                    >
+                      Female only
+                    </span>
+                  )}
                 </span>
               </span>
             );
@@ -158,7 +186,7 @@ export default function AboutView() {
       <div style={s.footer}>
         Golosino, Nash T. &amp; Morales, Ma. Nicole B.
         <br />
-        University of the Immaculate Conception — College of Computer Studies — BS Computer Science
+        University of the Immaculate Conception &mdash; College of Computer Studies &mdash; BS Computer Science
       </div>
     </div>
   );
