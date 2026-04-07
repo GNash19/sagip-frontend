@@ -67,13 +67,17 @@ export default function TriageView({ onPatientQueued, queues }) {
     if (age < 12) classifyVulns.push("Pediatric");
     if (isPregnant && patientInfo.gender === "Female") classifyVulns.push("Pregnant");
 
-    setIsClassifying(true);
-    setStep(3);
-    const result = await classifySymptoms(text, language, {
+    const patientContext = {
       age,
       gender: patientInfo.gender,
       vulnerabilities: classifyVulns,
-    });
+    };
+    // TEMP diagnostic log — remove after confirming fix
+    console.log("[SAGIP] classifySymptoms args:", text, language, patientContext);
+
+    setIsClassifying(true);
+    setStep(3);
+    const result = await classifySymptoms(text, language, patientContext);
     setClassification(result);
     setIsClassifying(false);
     if (result) setStep(4);

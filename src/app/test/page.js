@@ -42,7 +42,12 @@ export default function TestPage() {
     setStatus(`classifying: "${text.slice(0, 40)}..."`);
     setError(null);
     try {
-      const result = await classifySymptoms(text, lang);
+      // FIX 3 — pass patientContext so gender gate is active even in test page
+      const result = await classifySymptoms(text, lang, {
+        age: 30,
+        gender: "unknown",
+        vulnerabilities: [],
+      });
       if (result) {
         setClassifyResult(result);
         setStatus("classification OK \u2705");

@@ -1,43 +1,27 @@
 // SAGIP Classification Engine
-// Connects to fine-tuned XLM-RoBERTa running on Google Colab via ngrok
+// Connects to fine-tuned XLM-RoBERTa deployed on GCP Cloud Run
 //
-// How it works:
-//   1. Colab runs FastAPI server with the trained model on port 8000
-//   2. ngrok tunnels that port to a public URL
-//   3. This file calls that public URL from the browser
-//   4. Model returns classification results
-//   5. Next.js displays them in the UI
+// The backend handles:
+//   - Gender prefix injection ([GENDER: Male/Female] prepended to text)
+//   - OB-GYN safety gate (Male patients cannot be routed to OB-GYN)
+//   - Language detection
+//   - Softmax probability output over 8 departments
 
-// ⚠️ REPLACE THIS with your actual ngrok URL from Colab Cell 5
-// It looks like: https://a1b2-34-56-78-90.ngrok-free.app
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export async function classifySymptoms(text, language, patientContext) {
   try {
-    // Build enriched text with patient context for gender-aware routing
-    let enrichedText = text;
-    if (patientContext) {
-      const flags = patientContext.vulnerabilities.length > 0
-        ? patientContext.vulnerabilities.join(", ")
-        : "None";
-      enrichedText =
-        `Patient context: ${patientContext.age}-year-old ${patientContext.gender} patient.\n` +
-        `Priority flags: ${flags}.\n` +
-        `OB-GYN department is only appropriate for Female patients. Do not route Male patients to OB-GYN under any circumstances.\n` +
-        `Symptom description: ${text}`;
-    }
+    const gender = patientContext?.gender ?? "Male";
 
     const response = await fetch(`${API_URL}/classify`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        // This header is REQUIRED for free ngrok — bypasses the browser warning page
-        "ngrok-skip-browser-warning": "true",
       },
       body: JSON.stringify({
-        text: enrichedText,
+        text: text,       // raw symptom text only — backend prepends gender prefix
         language: language,
-        patient_context: patientContext || null,
+        gender: gender,   // backend uses this for prefix + OB-GYN gate
       }),
     });
 
@@ -46,24 +30,28 @@ export async function classifySymptoms(text, language, patientContext) {
     }
 
     const data = await response.json();
+
+    // Defense-in-depth: client-side OB-GYN gate
+    // Catches any edge case that slips past the backend gate
+    if (gender.toLowerCase() === "male" && data.department === "OB-GYN") {
+      data.department = "Internal Medicine";
+      data.reasoning =
+        "OB-GYN overridden: patient is Male. " + (data.reasoning || "");
+    }
+
     return data;
 
   } catch (err) {
-    console.error("Classification error:", err);
-    console.error("Troubleshooting:");
-    console.error("  1. Is your Colab notebook running? (Cell 5 must be active)");
-    console.error("  2. Is the ngrok URL correct in classifier.js?");
-    console.error("  3. Check Colab output for the latest ngrok URL");
+    console.error("[SAGIP] Classification error:", err);
+    console.error("[SAGIP] Check that GCP Cloud Run service is running:");
+    console.error(`[SAGIP] Health check: ${API_URL}/health`);
     return null;
   }
 }
 
-// Optional: health check function to test connection
 export async function checkHealth() {
   try {
-    const response = await fetch(`${API_URL}/health`, {
-      headers: { "ngrok-skip-browser-warning": "true" },
-    });
+    const response = await fetch(`${API_URL}/health`);
     const data = await response.json();
     return data;
   } catch {
