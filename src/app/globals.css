@@ -142,3 +142,26 @@ button:hover {
 button:active {
   transform: scale(0.98);
 }
+
+/* ─── Print Styles (Kiosk Ticket) ─── */
+
+.print-only {
+  display: none;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+  body {
+    margin: 0;
+    padding: 0;
+  }
+}
