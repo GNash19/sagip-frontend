@@ -65,7 +65,8 @@ export default function AdminPage() {
       });
       if (res.ok) {
         setResetMessage({ type: "success", text: "Na-reset na ang queue! (Queue has been reset!)" });
-        setTimeout(() => fetchAnalytics(), 1000);
+        await fetchAnalytics();
+        setTimeout(() => setResetMessage(null), 4000);
       } else {
         setResetMessage({ type: "error", text: "Adunay sayop sa pag-reset. (Error resetting queue.)" });
       }
