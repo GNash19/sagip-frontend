@@ -36,6 +36,7 @@ export default function AdminPage() {
       });
       if (res.ok) {
         const data = await res.json();
+        console.log("[ADMIN] analytics data:", data);
         setAnalytics(data);
       }
     } catch (err) {
@@ -82,8 +83,11 @@ export default function AdminPage() {
 
   if (!user || role !== "admin") return null;
 
-  const summary = analytics?.summary || {};
-  const departments = analytics?.departments || [];
+  const perDepartment = analytics?.per_department || {};
+  const departments = Object.entries(perDepartment).map(([dept, data]) => ({
+    department: dept,
+    ...data,
+  }));
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg-primary)" }}>
@@ -119,25 +123,25 @@ export default function AdminPage() {
                 <div style={s.summaryCard}>
                   <div style={s.cardLabel}>Total Pasyente (Total Patients)</div>
                   <div style={{ ...s.cardNumber, color: "#1A1A2E" }}>
-                    {summary.total_patients || 0}
+                    {analytics?.total_patients || 0}
                   </div>
                 </div>
                 <div style={s.summaryCard}>
                   <div style={s.cardLabel}>Naghulat (Waiting)</div>
                   <div style={{ ...s.cardNumber, color: "#C8102E" }}>
-                    {summary.waiting || 0}
+                    {analytics?.total_waiting || 0}
                   </div>
                 </div>
                 <div style={s.summaryCard}>
                   <div style={s.cardLabel}>Naserbisyuhan (Served)</div>
                   <div style={{ ...s.cardNumber, color: "#059669" }}>
-                    {summary.served || 0}
+                    {analytics?.total_served || 0}
                   </div>
                 </div>
                 <div style={s.summaryCard}>
                   <div style={s.cardLabel}>Na-override (Overridden)</div>
                   <div style={{ ...s.cardNumber, color: "#D97706" }}>
-                    {summary.overridden || 0}
+                    {analytics?.total_overridden || 0}
                   </div>
                 </div>
               </div>
