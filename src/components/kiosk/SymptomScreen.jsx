@@ -1,6 +1,6 @@
 "use client";
 
-import { PenLine, Mic, Square, Loader } from "lucide-react";
+import { PenLine, Mic, Square } from "lucide-react";
 import { useSpeechRecording } from "@/utils/speechRecording";
 import { useEffect } from "react";
 
@@ -87,44 +87,212 @@ export default function SymptomScreen({
       {/* Speech Mode */}
       {inputMode === "speech" && (
         <div style={s.speechContainer}>
-          <button
-            onClick={() => isRecording ? stopRecording() : startRecording()}
-            disabled={isTranscribing}
-            style={{
-              ...s.micBtn,
-              ...(isRecording
-                ? {
-                    background: "#C8102E",
-                    border: "2px solid #C8102E",
-                    animation: "pulse 1.5s infinite",
-                  }
-                : isTranscribing
-                ? {
-                    background: "#FEF3C7",
-                    border: "2px solid #FDE68A",
-                  }
-                : {
-                    background: "#FEF2F2",
-                    border: "2px solid #FECACA",
-                  }),
-              ...(isTranscribing ? { cursor: "not-allowed" } : {}),
-            }}
-          >
-            {isRecording ? (
-              <Square size={32} color="#FFFFFF" />
-            ) : isTranscribing ? (
-              <Loader size={32} color="#D97706" style={{ animation: "spin 1s linear infinite" }} />
-            ) : (
-              <Mic size={36} color="#C8102E" />
-            )}
-          </button>
-          <p style={s.micLabel}>
-            {isRecording
-              ? "Nagrekord... I-tap para mohunong\n(Recording... Tap to stop)"
-              : isTranscribing
-              ? "Nagproseso... (Processing...)"
-              : "I-tap para mag-rekord (Tap to record)"}
-          </p>
+
+          {/* ── Transcribing state: processing panel ── */}
+          {isTranscribing ? (
+            <>
+              <div style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 16,
+                padding: "32px 24px",
+                background: "#FFF5F5",
+                borderRadius: 16,
+                border: "1px solid #FECACA",
+              }}>
+                <div style={{
+                  width: 72,
+                  height: 72,
+                  borderRadius: "50%",
+                  background: "#FEE2E2",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  border: "2px solid #FECACA",
+                }}>
+                  <Mic size={32} color="#C8102E" />
+                </div>
+
+                <div style={{ textAlign: "center" }}>
+                  <p style={{
+                    fontSize: 16,
+                    fontWeight: 700,
+                    color: "#1A1A2E",
+                    margin: 0,
+                    fontFamily: "var(--font-dm-serif), serif",
+                  }}>
+                    Nadungog namo ang imong tingog.
+                  </p>
+                  <p style={{
+                    fontSize: 13,
+                    color: "#6B7280",
+                    marginTop: 4,
+                    marginBottom: 0,
+                  }}>
+                    (We heard your voice.)
+                  </p>
+                </div>
+
+                <div style={{ textAlign: "center" }}>
+                  <p style={{
+                    fontSize: 13,
+                    color: "#4B5563",
+                    margin: 0,
+                  }}>
+                    Gi-analisar ang imong mga sinulti...
+                  </p>
+                  <p style={{
+                    fontSize: 12,
+                    color: "#9CA3AF",
+                    marginTop: 2,
+                    marginBottom: 0,
+                  }}>
+                    (Analyzing what you said...)
+                  </p>
+                </div>
+
+                <div className="processing-dots">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+
+                <p style={{
+                  fontSize: 11,
+                  color: "#9CA3AF",
+                  textAlign: "center",
+                  maxWidth: 280,
+                  margin: 0,
+                  lineHeight: 1.5,
+                }}>
+                  Palihug maghulat sa pipila ka segundo.
+                  Ang sistema nagproseso sa imong sintomas.
+                  (Please wait a few seconds.
+                  The system is processing your symptoms.)
+                </p>
+              </div>
+
+              {/* Live transcript appearing below processing panel */}
+              {liveTranscript && (
+                <div style={{
+                  marginTop: 16,
+                  padding: "14px 16px",
+                  background: "#F9FAFB",
+                  borderRadius: 10,
+                  border: "1px solid #E5E7EB",
+                }}>
+                  <p style={{
+                    fontSize: 11,
+                    color: "#9CA3AF",
+                    margin: "0 0 6px 0",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                    fontWeight: 600,
+                  }}>
+                    Nakuha nga teksto (Captured text):
+                  </p>
+                  <p style={{
+                    fontSize: 15,
+                    color: "#1A1A2E",
+                    margin: 0,
+                    lineHeight: 1.6,
+                    fontWeight: 500,
+                  }}>
+                    {liveTranscript}
+                    <span style={{
+                      display: "inline-block",
+                      width: 2,
+                      height: "1em",
+                      background: "#C8102E",
+                      marginLeft: 3,
+                      verticalAlign: "middle",
+                      animation: "processingPulse 0.8s ease-in-out infinite",
+                    }} />
+                  </p>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              {/* ── Mic button (idle + recording states) ── */}
+              <button
+                onClick={() => isRecording ? stopRecording() : startRecording()}
+                style={{
+                  ...s.micBtn,
+                  ...(isRecording
+                    ? {
+                        background: "#C8102E",
+                        border: "2px solid #C8102E",
+                        animation: "pulse 1.5s infinite",
+                      }
+                    : {
+                        background: "#FEF2F2",
+                        border: "2px solid #FECACA",
+                      }),
+                }}
+              >
+                {isRecording ? (
+                  <Square size={32} color="#FFFFFF" />
+                ) : (
+                  <Mic size={36} color="#C8102E" />
+                )}
+              </button>
+
+              {/* ── Recording state: sound wave + labels ── */}
+              {isRecording ? (
+                <>
+                  <div className="sound-wave">
+                    <div className="sound-wave-bar"></div>
+                    <div className="sound-wave-bar"></div>
+                    <div className="sound-wave-bar"></div>
+                    <div className="sound-wave-bar"></div>
+                    <div className="sound-wave-bar"></div>
+                  </div>
+                  <p style={{
+                    fontSize: 13,
+                    color: "#C8102E",
+                    marginTop: 8,
+                    fontWeight: 600,
+                    textAlign: "center",
+                  }}>
+                    Nagpaminaw... (Listening...)
+                  </p>
+                  <p style={{
+                    fontSize: 11,
+                    color: "#9CA3AF",
+                    marginTop: 2,
+                    textAlign: "center",
+                  }}>
+                    I-tap ang mikropono para mohunong.
+                    (Tap the microphone to stop.)
+                  </p>
+                </>
+              ) : (
+                /* ── Idle state: labels ── */
+                <>
+                  <p style={{
+                    fontSize: 14,
+                    color: "#4B5563",
+                    marginTop: 12,
+                    textAlign: "center",
+                    fontWeight: 500,
+                  }}>
+                    I-tap para magsulti (Tap to speak)
+                  </p>
+                  <p style={{
+                    fontSize: 12,
+                    color: "#9CA3AF",
+                    marginTop: 2,
+                    textAlign: "center",
+                  }}>
+                    Pwede ka mag-Cebuano, Filipino, o English.
+                    (You may speak in Cebuano, Filipino, or English.)
+                  </p>
+                </>
+              )}
+            </>
+          )}
 
           {/* Error display */}
           {speechError && (
@@ -136,39 +304,22 @@ export default function SymptomScreen({
             </div>
           )}
 
-          {/* Transcript box — shows live text while recording, final after stop */}
-          {(() => {
-            const displayText = isRecording ? liveTranscript : transcript;
-            return (isRecording || displayText) ? (
-              <div style={s.transcriptBox}>
-                <div style={s.transcriptLabel}>
-                  {isRecording
-                    ? "Live nga teksto (Live text):"
-                    : "Nakuha nga teksto (Captured text):"}
-                </div>
-                {isRecording && !liveTranscript ? (
-                  <div style={s.listeningPlaceholder}>
-                    Nagpaminaw... isulti ang imong mga sintomas.
-                    <br />
-                    (Listening... speak your symptoms.)
-                  </div>
-                ) : (
-                  <div style={s.transcriptText}>
-                    {isRecording && (
-                      <span style={s.pulsingDot} />
-                    )}
-                    &ldquo;{displayText}&rdquo;
-                  </div>
-                )}
-                {/* Detected language indicator */}
-                {!isRecording && detectedLanguage && (
-                  <div style={s.detectedLang}>
-                    Nadiskobreng Sinultian (Detected Language): {detectedLanguage}
-                  </div>
-                )}
+          {/* Final transcript box (after typewriter completes) */}
+          {!isRecording && !isTranscribing && transcript && (
+            <div style={s.transcriptBox}>
+              <div style={s.transcriptLabel}>
+                Nakuha nga teksto (Captured text):
               </div>
-            ) : null;
-          })()}
+              <div style={s.transcriptText}>
+                &ldquo;{transcript}&rdquo;
+              </div>
+              {detectedLanguage && (
+                <div style={s.detectedLang}>
+                  Nadiskobreng Sinultian (Detected Language): {detectedLanguage}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -248,13 +399,6 @@ const s = {
     justifyContent: "center",
     margin: "0 auto",
   },
-  micLabel: {
-    fontSize: 14,
-    color: "#6B7280",
-    marginTop: 14,
-    whiteSpace: "pre-line",
-    lineHeight: 1.5,
-  },
   transcriptBox: {
     marginTop: 20,
     padding: 16,
@@ -276,23 +420,6 @@ const s = {
     lineHeight: 1.6,
     display: "flex",
     alignItems: "flex-start",
-  },
-  listeningPlaceholder: {
-    fontSize: 14,
-    color: "#9CA3AF",
-    fontStyle: "italic",
-    lineHeight: 1.6,
-  },
-  pulsingDot: {
-    width: 8,
-    height: 8,
-    borderRadius: "50%",
-    background: "#C8102E",
-    display: "inline-block",
-    marginRight: 8,
-    marginTop: 6,
-    flexShrink: 0,
-    animation: "pulse 1s infinite",
   },
   speechError: {
     background: "#FEF2F2",
