@@ -1,26 +1,32 @@
 "use client";
 
-import { PenLine, Mic, Square } from "lucide-react";
-import { useSpeechRecognition } from "@/utils/speechRecognition";
+import { PenLine, Mic, Square, Loader } from "lucide-react";
+import { useSpeechRecording } from "@/utils/speechRecording";
 import { useEffect } from "react";
 
 export default function SymptomScreen({
   symptomText,
   inputMode,
-  language,
   onChange,
   onClassify,
   onBack,
+  onLanguageDetected,
   isLoading,
 }) {
-  const speech = useSpeechRecognition();
+  const {
+    isRecording, isTranscribing, transcript,
+    detectedLanguage, error: speechError,
+    startRecording, stopRecording,
+    clearTranscript, setTranscript,
+  } = useSpeechRecording();
 
-  // Sync speech transcript to parent symptomText
+  // Sync speech transcript and detected language to parent
   useEffect(() => {
-    if (inputMode === "speech" && speech.transcript) {
-      onChange("symptomText", speech.transcript);
+    if (transcript && detectedLanguage) {
+      onChange("symptomText", transcript);
+      onLanguageDetected(detectedLanguage);
     }
-  }, [speech.transcript, inputMode]);
+  }, [transcript, detectedLanguage]);
 
   const textEmpty = !symptomText.trim();
 
@@ -74,69 +80,72 @@ export default function SymptomScreen({
       {inputMode === "speech" && (
         <div style={s.speechContainer}>
           <button
-            onClick={() =>
-              speech.isListening
-                ? speech.stopListening()
-                : speech.startListening(language)
-            }
+            onClick={() => isRecording ? stopRecording() : startRecording()}
+            disabled={isTranscribing}
             style={{
               ...s.micBtn,
-              ...(speech.isListening
+              ...(isRecording
                 ? {
                     background: "#C8102E",
                     border: "2px solid #C8102E",
                     animation: "pulse 1.5s infinite",
                   }
+                : isTranscribing
+                ? {
+                    background: "#FEF3C7",
+                    border: "2px solid #FDE68A",
+                  }
                 : {
                     background: "#FEF2F2",
                     border: "2px solid #FECACA",
                   }),
+              ...(isTranscribing ? { cursor: "not-allowed" } : {}),
             }}
           >
-            {speech.isListening ? (
+            {isRecording ? (
               <Square size={32} color="#FFFFFF" />
+            ) : isTranscribing ? (
+              <Loader size={32} color="#D97706" style={{ animation: "spin 1s linear infinite" }} />
             ) : (
               <Mic size={36} color="#C8102E" />
             )}
           </button>
           <p style={s.micLabel}>
-            {speech.isListening
-              ? "Nagpaminaw... (Listening...)\nI-tap para mohunong (Tap to stop)"
+            {isRecording
+              ? "Nagrekord... I-tap para mohunong\n(Recording... Tap to stop)"
+              : isTranscribing
+              ? "Nagproseso... (Processing...)"
               : "I-tap para mag-rekord (Tap to record)"}
           </p>
-          {speech.transcript && (
+
+          {/* Error display */}
+          {speechError && (
+            <div style={s.speechError}>
+              {speechError}
+              <button onClick={clearTranscript} style={s.tryAgainLink}>
+                Sulayan pag-usab (Try again)
+              </button>
+            </div>
+          )}
+
+          {transcript && (
             <div style={s.transcriptBox}>
               <div style={s.transcriptLabel}>
                 Nakuha nga teksto (Captured text):
               </div>
               <div style={s.transcriptText}>
-                &ldquo;{speech.transcript}&rdquo;
+                &ldquo;{transcript}&rdquo;
               </div>
+              {/* Detected language indicator */}
+              {detectedLanguage && (
+                <div style={s.detectedLang}>
+                  Nadiskobreng Sinultian (Detected Language): {detectedLanguage}
+                </div>
+              )}
             </div>
           )}
         </div>
       )}
-
-      {/* Language Selector */}
-      <div style={{ display: "flex", gap: 8, marginTop: 20, flexWrap: "wrap" }}>
-        {["Cebuano", "Filipino", "English", "Code-switch"].map((lang) => {
-          const sel = language === lang;
-          return (
-            <button
-              key={lang}
-              onClick={() => onChange("language", lang)}
-              style={{
-                ...s.langPill,
-                ...(sel
-                  ? { background: "#C8102E", color: "#FFFFFF", border: "1px solid #C8102E" }
-                  : { background: "#F9FAFB", color: "#4B5563", border: "1px solid #E5E7EB" }),
-              }}
-            >
-              {lang}
-            </button>
-          );
-        })}
-      </div>
 
       {/* Classify Button */}
       <button
@@ -241,13 +250,33 @@ const s = {
     color: "#1A1A2E",
     lineHeight: 1.6,
   },
-  langPill: {
-    padding: "8px 16px",
-    borderRadius: 20,
+  speechError: {
+    background: "#FEF2F2",
+    color: "#DC2626",
+    borderRadius: 8,
+    padding: "10px 14px",
     fontSize: 13,
-    fontWeight: 500,
+    marginTop: 12,
+    lineHeight: 1.5,
+  },
+  tryAgainLink: {
+    display: "block",
+    marginTop: 6,
+    background: "none",
+    border: "none",
+    color: "#DC2626",
+    fontSize: 12,
+    fontWeight: 600,
     cursor: "pointer",
+    textDecoration: "underline",
     fontFamily: "inherit",
+    padding: 0,
+  },
+  detectedLang: {
+    fontSize: 11,
+    color: "#9CA3AF",
+    fontStyle: "italic",
+    marginTop: 8,
   },
   classifyBtn: {
     width: "100%",

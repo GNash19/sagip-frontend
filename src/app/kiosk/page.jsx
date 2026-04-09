@@ -17,7 +17,7 @@ const INITIAL_STATE = {
   isPregnant: false,
   symptomText: "",
   inputMode: "text",
-  language: "Cebuano",
+  language: "auto",
 };
 
 export default function KioskPage() {
@@ -26,6 +26,7 @@ export default function KioskPage() {
   const [result, setResult] = useState(null);
   const [patientRecord, setPatientRecord] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [detectedLanguage, setDetectedLanguage] = useState("Cebuano");
 
   // Generic field updater
   const handleChange = useCallback((field, value) => {
@@ -51,7 +52,7 @@ export default function KioskPage() {
     try {
       const res = await classifySymptoms(
         patientInfo.symptomText,
-        patientInfo.language,
+        detectedLanguage,
         { gender: patientInfo.gender }
       );
       if (res) {
@@ -61,7 +62,7 @@ export default function KioskPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [patientInfo.symptomText, patientInfo.language, patientInfo.gender]);
+  }, [patientInfo.symptomText, detectedLanguage, patientInfo.gender]);
 
   // Confirm and POST to backend
   const handleConfirm = useCallback(async () => {
@@ -132,10 +133,10 @@ export default function KioskPage() {
           <SymptomScreen
             symptomText={patientInfo.symptomText}
             inputMode={patientInfo.inputMode}
-            language={patientInfo.language}
             onChange={handleChange}
             onClassify={handleClassify}
             onBack={handleNext}
+            onLanguageDetected={setDetectedLanguage}
             isLoading={isLoading}
           />
         )}
