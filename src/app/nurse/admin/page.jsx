@@ -32,6 +32,7 @@ export default function AdminPage() {
   }, [loading, user, role, router]);
 
   const fetchAnalytics = useCallback(async () => {
+    console.log("[ANALYTICS] Fetching analytics...");
     setIsLoadingData(true);
     try {
       let currentToken = token;
@@ -41,8 +42,9 @@ export default function AdminPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        console.log("[ADMIN] analytics data:", data);
+        console.log("[ANALYTICS] Data received:", data);
         setAnalytics(data);
+        console.log("[ANALYTICS] State updated with:", data);
       }
     } catch (err) {
       console.error("Analytics fetch failed:", err);
@@ -56,6 +58,7 @@ export default function AdminPage() {
   }, [user, token, role, fetchAnalytics]);
 
   const handleReset = async () => {
+    console.log("[RESET] Starting reset...");
     setIsResetting(true);
     setResetMessage(null);
     try {
@@ -63,9 +66,13 @@ export default function AdminPage() {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
+      console.log("[RESET] Response status:", res.status);
+      const data = await res.json();
+      console.log("[RESET] Response data:", data);
       if (res.ok) {
         setResetMessage({ type: "success", text: "Na-reset na ang queue! (Queue has been reset!)" });
         await fetchAnalytics();
+        console.log("[RESET] fetchAnalytics called");
         setTimeout(() => setResetMessage(null), 4000);
       } else {
         setResetMessage({ type: "error", text: "Adunay sayop sa pag-reset. (Error resetting queue.)" });
