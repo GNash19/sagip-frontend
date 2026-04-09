@@ -11,9 +11,9 @@ export default function WelcomeScreen({ onStart }) {
         <h1 style={s.title}>SAGIP</h1>
         <p style={s.subtitle}>Sistema sa Triage sa OPD</p>
         <p style={s.subtitleEn}>(OPD Triage System)</p>
-        <p style={s.spmc}>Southern Philippines Medical Center</p>
+        <p style={s.spmc}>Serbisyo para sa kaayuhan sa katawhan.</p>
       </div>
-
+    
       <button onClick={onStart} style={s.startBtn}>
         Sugod (Start)
       </button>
