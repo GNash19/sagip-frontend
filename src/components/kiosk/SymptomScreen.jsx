@@ -15,15 +15,23 @@ export default function SymptomScreen({
 }) {
   const {
     isRecording, isTranscribing, transcript,
-    detectedLanguage, error: speechError,
-    startRecording, stopRecording,
-    clearTranscript, setTranscript,
+    liveTranscript, detectedLanguage,
+    error: speechError, startRecording,
+    stopRecording, clearTranscript,
+    setTranscript,
   } = useSpeechRecording();
 
-  // Sync speech transcript and detected language to parent
+  // Sync transcript to parent — fires on both live and final changes
+  useEffect(() => {
+    const currentText = transcript || liveTranscript;
+    if (currentText) {
+      onChange("symptomText", currentText);
+    }
+  }, [transcript, liveTranscript]);
+
+  // Sync detected language to parent when available
   useEffect(() => {
     if (transcript && detectedLanguage) {
-      onChange("symptomText", transcript);
       onLanguageDetected(detectedLanguage);
     }
   }, [transcript, detectedLanguage]);
@@ -128,22 +136,39 @@ export default function SymptomScreen({
             </div>
           )}
 
-          {transcript && (
-            <div style={s.transcriptBox}>
-              <div style={s.transcriptLabel}>
-                Nakuha nga teksto (Captured text):
-              </div>
-              <div style={s.transcriptText}>
-                &ldquo;{transcript}&rdquo;
-              </div>
-              {/* Detected language indicator */}
-              {detectedLanguage && (
-                <div style={s.detectedLang}>
-                  Nadiskobreng Sinultian (Detected Language): {detectedLanguage}
+          {/* Transcript box — shows live text while recording, final after stop */}
+          {(() => {
+            const displayText = isRecording ? liveTranscript : transcript;
+            return (isRecording || displayText) ? (
+              <div style={s.transcriptBox}>
+                <div style={s.transcriptLabel}>
+                  {isRecording
+                    ? "Live nga teksto (Live text):"
+                    : "Nakuha nga teksto (Captured text):"}
                 </div>
-              )}
-            </div>
-          )}
+                {isRecording && !liveTranscript ? (
+                  <div style={s.listeningPlaceholder}>
+                    Nagpaminaw... isulti ang imong mga sintomas.
+                    <br />
+                    (Listening... speak your symptoms.)
+                  </div>
+                ) : (
+                  <div style={s.transcriptText}>
+                    {isRecording && (
+                      <span style={s.pulsingDot} />
+                    )}
+                    &ldquo;{displayText}&rdquo;
+                  </div>
+                )}
+                {/* Detected language indicator */}
+                {!isRecording && detectedLanguage && (
+                  <div style={s.detectedLang}>
+                    Nadiskobreng Sinultian (Detected Language): {detectedLanguage}
+                  </div>
+                )}
+              </div>
+            ) : null;
+          })()}
         </div>
       )}
 
@@ -249,6 +274,25 @@ const s = {
     fontSize: 15,
     color: "#1A1A2E",
     lineHeight: 1.6,
+    display: "flex",
+    alignItems: "flex-start",
+  },
+  listeningPlaceholder: {
+    fontSize: 14,
+    color: "#9CA3AF",
+    fontStyle: "italic",
+    lineHeight: 1.6,
+  },
+  pulsingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: "50%",
+    background: "#C8102E",
+    display: "inline-block",
+    marginRight: 8,
+    marginTop: 6,
+    flexShrink: 0,
+    animation: "pulse 1s infinite",
   },
   speechError: {
     background: "#FEF2F2",
