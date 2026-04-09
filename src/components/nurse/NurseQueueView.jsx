@@ -51,7 +51,7 @@ export default function NurseQueueView({ token, getToken }) {
         setIsLoading(false);
       }
     },
-    [token, getToken]
+    [token]
   );
 
   useEffect(() => {

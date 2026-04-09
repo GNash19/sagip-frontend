@@ -38,7 +38,7 @@ export default function HistoryPage() {
     } finally {
       setIsLoadingData(false);
     }
-  }, [token, getToken]);
+  }, [token]);
 
   useEffect(() => {
     if (user && token) fetchHistory();

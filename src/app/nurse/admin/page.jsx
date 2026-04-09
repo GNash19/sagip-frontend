@@ -43,7 +43,7 @@ export default function AdminPage() {
     } finally {
       setIsLoadingData(false);
     }
-  }, [token, getToken]);
+  }, [token]);
 
   useEffect(() => {
     if (user && token && role === "admin") fetchAnalytics();

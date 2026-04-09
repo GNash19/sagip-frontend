@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 
@@ -59,19 +59,19 @@ export function useAuth() {
     return () => unsubscribe();
   }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     await signOut(auth);
-  };
+  }, []);
 
   // Refresh token before it expires (Firebase tokens last 1 hour)
-  const getToken = async () => {
+  const getToken = useCallback(async () => {
     if (user) {
       const fresh = await user.getIdToken(false);
       setToken(fresh);
       return fresh;
     }
     return null;
-  };
+  }, [user]);
 
   return { user, token, role, name, loading, logout, getToken };
 }
