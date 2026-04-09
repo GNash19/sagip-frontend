@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import NurseNav from "@/components/nurse/NurseNav";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Users, Zap } from "lucide-react";
+import { DEMO_PATIENTS, STRESS_PATIENTS, seedPatients } from "@/lib/demoPatients";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ||
   "https://sagip-backend-851223561042.asia-southeast1.run.app";
@@ -17,6 +18,10 @@ export default function AdminPage() {
   const [confirmReset, setConfirmReset] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [resetMessage, setResetMessage] = useState(null);
+  const [isSeeding, setIsSeeding] = useState(false);
+  const [seedProgress, setSeedProgress] = useState(0);
+  const [seedTotal, setSeedTotal] = useState(0);
+  const [seedMessage, setSeedMessage] = useState(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -70,6 +75,40 @@ export default function AdminPage() {
       setIsResetting(false);
       setConfirmReset(false);
     }
+  };
+
+  const handleSeedDemo = async () => {
+    setIsSeeding(true);
+    setSeedMessage(null);
+    setSeedTotal(DEMO_PATIENTS.length);
+    setSeedProgress(0);
+    const result = await seedPatients(
+      DEMO_PATIENTS,
+      API_URL,
+      (current) => setSeedProgress(current)
+    );
+    setSeedMessage(
+      `Malampuson! Nadugang ang ${result.success} ka pasyente. (Success! Added ${result.success} patients.)`
+    );
+    setIsSeeding(false);
+    setTimeout(() => fetchAnalytics(), 1000);
+  };
+
+  const handleSeedStress = async () => {
+    setIsSeeding(true);
+    setSeedMessage(null);
+    setSeedTotal(STRESS_PATIENTS.length);
+    setSeedProgress(0);
+    const result = await seedPatients(
+      STRESS_PATIENTS,
+      API_URL,
+      (current) => setSeedProgress(current)
+    );
+    setSeedMessage(
+      `Malampuson! Nadugang ang ${result.success} ka pasyente. (Success! Added ${result.success} patients.)`
+    );
+    setIsSeeding(false);
+    setTimeout(() => fetchAnalytics(), 1000);
   };
 
   if (loading) {
@@ -184,7 +223,79 @@ export default function AdminPage() {
         {/* Divider */}
         <div style={s.divider} />
 
-        {/* Section 2 — Danger Zone */}
+        {/* Section — Demo Controls */}
+        <div style={{ marginBottom: 40 }}>
+          <h3 style={s.sectionTitle}>Demo Controls</h3>
+          <p style={{ fontSize: 13, color: "#9CA3AF", marginTop: 4, marginBottom: 16 }}>
+            Para sa demonstration ug testing.
+            (For demonstration and testing purposes.)
+          </p>
+          <div style={s.demoBox}>
+            <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+              {/* Demo Mode Button */}
+              <div>
+                <button
+                  onClick={handleSeedDemo}
+                  disabled={isSeeding}
+                  style={{
+                    ...s.demoBtn,
+                    opacity: isSeeding ? 0.5 : 1,
+                    pointerEvents: isSeeding ? "none" : "auto",
+                  }}
+                >
+                  <Users size={16} style={{ marginRight: 6 }} />
+                  I-load ang Demo Patients (Load Demo Patients)
+                </button>
+                <p style={s.demoDesc}>
+                  Magdugang og 40 ka pasyente (5 kada departamento)
+                  nga gidisenyo para ipakita ang priority scoring.
+                  <br />
+                  (Adds 40 patients — 5 per department — designed to
+                  demonstrate priority scoring features.)
+                </p>
+              </div>
+
+              {/* Stress Test Button */}
+              <div>
+                <button
+                  onClick={handleSeedStress}
+                  disabled={isSeeding}
+                  style={{
+                    ...s.stressBtn,
+                    opacity: isSeeding ? 0.5 : 1,
+                    pointerEvents: isSeeding ? "none" : "auto",
+                  }}
+                >
+                  <Zap size={16} style={{ marginRight: 6 }} />
+                  I-load ang Stress Test (Load Stress Test)
+                </button>
+                <p style={s.demoDesc}>
+                  Magdugang og 160 ka pasyente (20 kada departamento)
+                  para sa load testing.
+                  <br />
+                  (Adds 160 patients — 20 per department — for load testing.)
+                </p>
+              </div>
+            </div>
+
+            {/* Progress */}
+            {isSeeding && (
+              <p style={{ fontSize: 13, color: "#2563EB", marginTop: 16, fontWeight: 600 }}>
+                Nagdugang og mga pasyente... {seedProgress}/{seedTotal}
+                (Adding patients... {seedProgress}/{seedTotal})
+              </p>
+            )}
+
+            {/* Success message */}
+            {seedMessage && !isSeeding && (
+              <p style={{ fontSize: 13, color: "#059669", marginTop: 16, fontWeight: 600 }}>
+                {seedMessage}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Section — Danger Zone */}
         <div>
           <h3 style={s.dangerTitle}>Danger Zone</h3>
           <div style={s.dangerBox}>
@@ -367,6 +478,45 @@ const s = {
     padding: "12px 16px",
     fontSize: 13,
     color: "#4B5563",
+  },
+  demoBox: {
+    border: "1px solid #BFDBFE",
+    borderRadius: 12,
+    padding: 24,
+    background: "#EFF6FF",
+  },
+  demoBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    background: "#2563EB",
+    color: "#FFFFFF",
+    borderRadius: 8,
+    padding: "10px 20px",
+    fontWeight: 600,
+    fontSize: 14,
+    border: "none",
+    cursor: "pointer",
+    fontFamily: "inherit",
+  },
+  stressBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    background: "#FFFFFF",
+    color: "#7C3AED",
+    borderRadius: 8,
+    padding: "10px 20px",
+    fontWeight: 600,
+    fontSize: 14,
+    border: "1px solid #7C3AED",
+    cursor: "pointer",
+    fontFamily: "inherit",
+  },
+  demoDesc: {
+    fontSize: 11,
+    color: "#6B7280",
+    marginTop: 8,
+    lineHeight: 1.5,
+    maxWidth: 320,
   },
   divider: {
     height: 1,
