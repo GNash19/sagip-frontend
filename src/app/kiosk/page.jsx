@@ -83,11 +83,13 @@ export default function KioskPage() {
         vulnerabilities,
         department: result.department,
         confidence: result.confidence,
+        probabilities: result.probabilities || {},
         language: patientInfo.language,
         input_mode: patientInfo.inputMode,
         symptom_text: patientInfo.symptomText,
       };
 
+      console.log("[KIOSK] POST /patients body:", body);
       const response = await fetch(`${API_URL}/patients`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -95,8 +97,11 @@ export default function KioskPage() {
       });
 
       if (response.ok) {
-        const record = await response.json();
-        setPatientRecord(record);
+        const data = await response.json();
+        console.log("[KIOSK] POST /patients response:", data);
+        setPatientRecord(data);
+      } else {
+        console.error("[KIOSK] POST /patients failed:", response.status, await response.text());
       }
 
       // Build patientInfo object with vulnerabilities for TicketScreen
